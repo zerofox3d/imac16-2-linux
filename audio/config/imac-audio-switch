@@ -1,0 +1,53 @@
+#!/bin/sh
+# iMac16,2 (CS4208) speaker/headphone switcher.
+#
+# Speakers need the 4-channel surround profile + the bi-amp crossover sink.
+# Headphones only work on the plain analog-stereo profile — the codec's analog
+# headphone output produces nothing while the card runs the 4-channel stream,
+# even with the DAC and pin fully unmuted. So the profile must be switched.
+#
+# CRITICAL: never run `pactl set-card-profile <card> off`. Powering the pins down
+# latches a speaker amp channel (the left woofer) off until the next reboot.
+# Switching directly between the two profiles is safe — verified.
+CARD=alsa_card.pci-0000_00_1b.0
+SPK_PROFILE='output:analog-surround-40+input:analog-stereo'
+HP_PROFILE='output:analog-stereo+input:analog-stereo'
+HW_SPK=alsa_output.pci-0000_00_1b.0.analog-surround-40
+HW_HP=alsa_output.pci-0000_00_1b.0.analog-stereo
+XOVER=imac_speakers
+
+# codec auto-mute: mutes speakers / unmutes headphones on jack insert
+amixer -c1 cset numid=3 1 >/dev/null 2>&1
+
+state() {
+    if amixer -c1 cget numid=19 2>/dev/null | tail -1 | grep -q 'values=on'; then
+        echo hp
+    else
+        echo spk
+    fi
+}
+
+apply() {
+    case "$1" in
+        hp)
+            pactl set-card-profile "$CARD" "$HP_PROFILE" 2>/dev/null
+            sleep 1
+            pactl set-sink-mute    "$HW_HP" 0 2>/dev/null
+            pactl set-default-sink "$HW_HP"   2>/dev/null
+            ;;
+        spk)
+            pactl set-card-profile "$CARD" "$SPK_PROFILE" 2>/dev/null
+            sleep 1
+            pactl set-sink-mute    "$HW_SPK" 0 2>/dev/null
+            pactl set-sink-volume  "$HW_SPK" 70% 2>/dev/null
+            pactl set-default-sink "$XOVER"  2>/dev/null
+            pactl set-sink-mute    "$XOVER" 0 2>/dev/null
+            ;;
+    esac
+}
+
+last=$(state); apply "$last"
+alsactl monitor hw:1 2>/dev/null | while read -r _; do
+    cur=$(state)
+    if [ "$cur" != "$last" ]; then apply "$cur"; last="$cur"; fi
+done

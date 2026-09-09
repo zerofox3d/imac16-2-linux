@@ -1,0 +1,13 @@
+[Unit]
+Description=iMac16,2 speaker/headphone audio switcher
+After=pipewire.service wireplumber.service pipewire-pulse.service
+PartOf=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/imac-audio-switch
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,16 @@
+# Generated kernel build files
+*.o
+*.ko
+*.ko.zst
+*.mod
+*.mod.c
+.*.cmd
+Module.symvers
+modules.order
+.tmp_versions/
+# Local diagnostics and original machine images are not source artifacts.
+results/
+local/
+*.efi
+vmlinuz*
+chipset-read
