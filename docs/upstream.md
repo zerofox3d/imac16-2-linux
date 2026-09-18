@@ -8,8 +8,13 @@ exact versions, the smallest reproducer, and the limits of what was tested.
 
 Propose opt-in, model-specific setup for the two workarounds, with removal paths.
 The audio integration needs to run in the desktop user's context; shutdown
-installation requires root and DKMS. These are hardware compatibility problems,
-not demonstrated regressions caused by Omarchy itself.
+installation requires root and DKMS. The shutdown fix is a hardware compatibility
+problem, not a regression. The audio situation changed in September 2026: the
+`linux-omarchy` kernel's `0512-sound-fixes.patch` adds a CS4208 quirk keyed on
+the generic Intel PCI SSID `8086:7270`, which misapplies a MacBook Air pin table
+to this iMac and silences the speakers. That is a demonstrated regression and is
+filed as [omarchy-pkgs#510](https://github.com/omacom/omarchy-pkgs/issues/510);
+the audio bundle now carries `model=mbp11` so it works regardless.
 
 Before submitting, read the current [Omarchy repository](https://github.com/basecamp/omarchy)
 instructions and issue/PR templates in a separate source checkout. Use its

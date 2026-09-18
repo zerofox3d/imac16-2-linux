@@ -17,6 +17,15 @@ switching and software-volume behaviour. Those audio paths were not retested
 while consolidating this project. The crossover was tuned by ear, not calibrated
 with measurements. See the [audio investigation](../audio/README.md).
 
+2026-09-18, `linux-omarchy 7.2.5-3` (Omarchy update): speakers silent on first
+boot; dmesg `picked fixup  for PCI SSID 8086:7270`, `line_outs=1 (0x12)`. Same
+machine on `linux 7.2.3-arch1-3` two minutes earlier: `line_outs=2 (0x1d/0x1e)`,
+working. Adding `model=mbp11,mbp11` and rebooting into the Omarchy kernel gave
+`picked fixup mbp11 (model specified)` and `line_outs=2`; speakers confirmed
+working by the user. That kernel also renumbered ALSA controls (Headphone Jack
+numid 19→12); the switcher was changed to address controls by name and is
+running. Headphone auto-switching was not retested on this kernel.
+
 ## Power-off
 
 Test kernel: `7.2.3-arch1-3`. Dates/times below are 9 September 2026, BST.

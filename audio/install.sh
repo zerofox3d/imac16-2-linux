@@ -25,8 +25,8 @@ echo "Found CS4208 on $PCI"
 echo "Codec SSID: $(grep -m1 'Subsystem Id' "$CARD_PATH" | awk '{print $3}')"
 echo
 
-echo "1/4  Disabling HDA power save (codec resume does not re-enable the speaker amp)"
-printf 'options snd_hda_intel power_save=0\n' | sudo tee /etc/modprobe.d/imac-audio.conf >/dev/null
+echo "1/4  Installing modprobe options (power_save=0, pin the correct CS4208 fixup)"
+sudo install -m644 config/imac-audio.conf /etc/modprobe.d/imac-audio.conf
 
 echo "2/4  Installing WirePlumber and PipeWire configuration"
 mkdir -p "$HOME/.config/wireplumber/wireplumber.conf.d" \

@@ -13,7 +13,8 @@ WirePlumber 0.5-style configuration, pipewire-pulse (`pactl` client), ALSA tools
 and overwrites its named configuration files; preserve any existing customisations
 before reinstalling. Uninstall removes those files rather than restoring backups.
 
-The switcher assumes ALSA card 1, control IDs 3 and 19, and PCI address `00:1b.0`.
+The switcher assumes ALSA card 1 and PCI address `00:1b.0`; it addresses ALSA
+controls by name, because a kernel update renumbered them.
 Those assumptions are verified only on the original machine. Other card ordering
 or profiles need validation before use. The tuning script expects three numeric
 arguments; defaults are 800 Hz, woofer gain 2.0 and tweeter gain 0.5.
@@ -44,6 +45,7 @@ That leaves six separate problems:
 |---|---------|-----|
 | 1 | PipeWire defaults to the Intel display-audio output, which reports `monitor_present 0` / `eld_valid 0` — it can never produce sound | point the default sink at the analog card |
 | 2 | `power_save=10` suspends the codec; its resume path never re-enables the speaker amplifier, so audio works for ~30 min after boot then dies permanently | `options snd_hda_intel power_save=0` |
+| 2b | The Omarchy kernel applies a MacBook Air pin table to this iMac via an over-broad quirk (see below) | `options snd_hda_intel model=mbp11,mbp11` |
 | 3 | Plain 2-channel playback is silent — the speakers only sound from the 4-channel PCM | use the `analog-surround-40` profile |
 | 4 | The driver advertises the 4-channel map as `FL,FR,LFE,LFE`, which is wrong. The real wiring is `slots 0,1 = LEFT` and `slots 2,3 = RIGHT` | `api.alsa.use-chmap = false` + explicit `audio.position` |
 | 5 | Each speaker is bi-amped with no passive crossover, so every driver receives full-range audio and it sounds thin | software crossover (PipeWire filter-chain) |
@@ -54,6 +56,28 @@ Plus one that only shows up later: the codec's `Master Playback Volume` is an
 have no amp. So the volume slider does nothing for the speakers until you set
 `api.alsa.soft-mixer = true` (a **device** property; setting it on the node is
 silently ignored).
+
+### The Omarchy kernel breaks this (and how the fix covers it)
+
+`linux-omarchy` (first seen in 7.2.5-3, September 2026) carries
+`0512-sound-fixes.patch`, which adds to `cs420x.c`:
+
+    SND_PCI_QUIRK(0x8086, 0x7270, "MacBookAir 7,2", CS4208_MBA6),
+
+`8086:7270` is not a MacBook Air identifier — it is Intel's generic subsystem ID
+for the HDA controller, present on this iMac and many other machines. The quirk
+therefore applies the MacBook Air pin table to the iMac, which disables pins
+`0x1d`/`0x1e` (the real speakers) and enables `0x12` (wired to nothing). Symptom:
+`autoconfig ... line_outs=1 (0x12)` in dmesg and total silence. The stock Arch
+`linux` kernel is unaffected. Reported: <https://github.com/omacom/omarchy-pkgs/issues/510>.
+
+`options snd_hda_intel model=mbp11,mbp11` pins the `CS4208_MBP11` fixup — the
+one upstream 7.2 uses for the iMac 16,1 — which leaves the pins alone. The
+`model=` option takes precedence over every quirk table, so this holds on any
+kernel. Verified on `linux-omarchy 7.2.5-3`:
+
+    CS4208: picked fixup mbp11 (model specified)
+    autoconfig for CS4208: line_outs=2 (0x1d/0x1e/0x0/0x0/0x0) type:speaker
 
 ## Speaker wiring
 
